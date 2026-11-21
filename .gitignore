@@ -1,0 +1,32 @@
+# env & secrets
+.env
+.env.local
+.env.*.local
+!**/.env.example
+
+# deps & build
+node_modules/
+frontend/dist/
+backend/.venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# uploads / local data
+uploads/
+data/imports/
+*.xlsx
+!data/templates/**
