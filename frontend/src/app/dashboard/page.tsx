@@ -1,0 +1,342 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  User,
+  Sprout,
+  HelpCircle,
+  FileText,
+  Bell,
+  Settings,
+  ChevronRight,
+  PlusCircle,
+  TrendingUp,
+  CloudSun,
+  MapPin,
+  Phone,
+  Mail,
+  ShieldCheck,
+  LogOut,
+  Clock,
+  CheckCircle2,
+  AlertCircle
+} from "lucide-react";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
+
+export default function FarmerDashboard() {
+  const { lang, t } = useI18n();
+  const { user, loading: authLoading, logout, refreshUser } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<"overview" | "crops" | "consultations" | "profile">("overview");
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  if (authLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 text-center">
+        <div className="size-10 border-4 border-[#15803d] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-sm text-[#4b5563]">डैशबोर्ड लोड हो रहा है (Loading Dashboard)...</p>
+      </div>
+    );
+  }
+
+  // Not Logged In State
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 text-center">
+        <div className="bg-white border border-[#e5e7eb] rounded-2xl p-8 shadow-xs">
+          <div className="size-14 bg-[#fef3c7] text-[#92400e] rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="size-7" />
+          </div>
+          <h2 className="text-xl font-black text-[#14532d] mb-2">
+            {lang === "hi" ? "लॉगिन आवश्यक है" : "Authentication Required"}
+          </h2>
+          <p className="text-xs text-[#4b5563] mb-6 leading-relaxed">
+            {lang === "hi"
+              ? "व्यक्तिगत किसान डैशबोर्ड देखने के लिए कृपया अपने पंजीकृत मोबाइल नंबर अथवा ईमेल से लॉगिन करें।"
+              : "Please sign in to access your registered farmer profile, saved crops, and expert advisories."}
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <Link href="/login">
+              <Button variant="primary" size="md" fullWidth>
+                <span>{lang === "hi" ? "लॉगिन करें (Sign In)" : "Sign In"}</span>
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="outline" size="md" fullWidth>
+                <span>{lang === "hi" ? "नया निःशुल्क पंजीकरण करें" : "Register Free"}</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Sample Registered Crops
+  const myCrops = [
+    { name: "गेहूँ (डीबीडब्ल्यू 187)", area: "2.5 एकड़", sowingDate: "20 नवम्बर 2025", stage: "दाना पकने की अवस्था" },
+    { name: "सरसों (एनडीआर 8501)", area: "1.0 एकड़", sowingDate: "10 अक्टूबर 2025", stage: "कटाई योग्य" },
+  ];
+
+  const myConsultations = [
+    {
+      id: "UKS-894",
+      crop: "गेहूँ",
+      question: "पत्तियों पर पीली धारियां दिखाई दे रही हैं, क्या यह पीला रतुआ है?",
+      status: "समाधान प्राप्त (Answered)",
+      expert: "डॉ. वी. के. सिंह (सस्य वैज्ञानिक, NDUAT)",
+      date: "18 मार्च 2026",
+    },
+  ];
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <Breadcrumbs
+        items={[{ label: lang === "hi" ? "किसान डैशबोर्ड" : "Farmer Dashboard" }]}
+      />
+
+      {/* Real Logged-in Farmer Welcome Banner */}
+      <div className="bg-gradient-to-r from-[#14532d] via-[#15803d] to-[#14532d] text-white p-6 sm:p-8 rounded-2xl shadow-sm flex flex-wrap items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="size-12 bg-white/20 backdrop-blur-xs rounded-xl flex items-center justify-center text-lg font-black text-[#fef08a] border border-white/20">
+              {user.full_name ? user.full_name.charAt(0).toUpperCase() : "K"}
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-3xl font-black tracking-tight">
+                {lang === "hi" ? `स्वागत है, ${user.full_name}!` : `Welcome, ${user.full_name}!`}
+              </h1>
+              <div className="flex items-center gap-2 mt-0.5">
+                <Badge variant="accent" size="sm">
+                  किसान आईडी: #UPKS-{user.id ? user.id.slice(-6).toUpperCase() : "4892"}
+                </Badge>
+                <span className="text-[11px] bg-white/20 px-2 py-0.5 rounded-full font-semibold">
+                  {user.role === "super_admin" || user.role === "admin" ? "प्रशासक (Admin)" : "प्रमाणित किसान (Farmer)"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs sm:text-sm text-[#86efac] flex items-center gap-2 pt-1">
+            <MapPin className="size-4 shrink-0" />
+            <span>
+              {user.village ? `${user.village}, ` : ""}
+              {user.block ? `ब्लॉक: ${user.block}, ` : ""}
+              {user.tehsil ? `तहसील: ${user.tehsil}, ` : ""}
+              {user.district ? `जनपद: ${user.district} ` : ""}
+              {user.pincode ? `(${user.pincode})` : ""}
+            </span>
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link href="/ask-expert">
+            <Button variant="accent" size="sm" className="shadow-xs">
+              <HelpCircle className="size-4" />
+              <span>{lang === "hi" ? "वैज्ञानिक से पूछें" : "Ask Expert"}</span>
+            </Button>
+          </Link>
+          <button
+            type="button"
+            onClick={logout}
+            className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-3 py-2 rounded-lg border border-white/20 cursor-pointer transition-colors"
+          >
+            <LogOut className="size-3.5" />
+            <span>{lang === "hi" ? "लॉगआउट" : "Sign Out"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Grid: Profile Details Card + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Registered Farmer Verification Details Card */}
+        <div className="bg-white border border-[#e5e7eb] rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6]">
+            <h3 className="font-bold text-base text-[#14532d] flex items-center gap-2">
+              <User className="size-5 text-[#15803d]" />
+              <span>{lang === "hi" ? "पंजीकृत किसान प्रोफ़ाइल" : "Registered Profile"}</span>
+            </h3>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803d] bg-[#dcfce7] px-2.5 py-0.5 rounded-full border border-[#86efac]">
+              <CheckCircle2 className="size-3" />
+              {lang === "hi" ? "सत्यापित खाता" : "Verified"}
+            </span>
+          </div>
+
+          <div className="space-y-3 text-xs sm:text-sm">
+            <div>
+              <span className="text-xs text-[#6b7280] block">{lang === "hi" ? "पूरा नाम:" : "Full Name:"}</span>
+              <p className="font-bold text-[#1f2937] text-sm">{user.full_name}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-xs text-[#6b7280] block">{lang === "hi" ? "मोबाइल नंबर:" : "Mobile:"}</span>
+                <p className="font-semibold text-[#1f2937] flex items-center gap-1">
+                  <Phone className="size-3.5 text-[#15803d]" />
+                  <span>{user.phone || "उपलब्ध नहीं"}</span>
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-[#6b7280] block">{lang === "hi" ? "ईमेल पता:" : "Email:"}</span>
+                <p className="font-semibold text-[#1f2937] truncate" title={user.email}>
+                  {user.email}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-[#f3f4f6] space-y-2">
+              <span className="text-xs font-bold text-[#14532d] block uppercase tracking-wider">
+                {lang === "hi" ? "प्रशासनिक पता (UP Location):" : "Location Details:"}
+              </span>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-[#f8faf5] p-2 rounded-lg border border-[#e5e7eb]">
+                  <span className="text-[#6b7280] block">जनपद (District)</span>
+                  <span className="font-bold text-[#14532d]">{user.district || "अयोध्या"}</span>
+                </div>
+                <div className="bg-[#f8faf5] p-2 rounded-lg border border-[#e5e7eb]">
+                  <span className="text-[#6b7280] block">तहसील (Tehsil)</span>
+                  <span className="font-bold text-[#14532d]">{user.tehsil || "सदर"}</span>
+                </div>
+                <div className="bg-[#f8faf5] p-2 rounded-lg border border-[#e5e7eb]">
+                  <span className="text-[#6b7280] block">विकास खंड (Block)</span>
+                  <span className="font-bold text-[#14532d]">{user.block || "सदर"}</span>
+                </div>
+                <div className="bg-[#f8faf5] p-2 rounded-lg border border-[#e5e7eb]">
+                  <span className="text-[#6b7280] block">ग्राम (Village)</span>
+                  <span className="font-bold text-[#14532d]">{user.village || "ग्राम"}</span>
+                </div>
+              </div>
+
+              <div className="bg-[#f0fdf4] p-2.5 rounded-lg border border-[#bbf7d0] flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-[#14532d] font-bold block">पिन कोड: {user.pincode || "224001"}</span>
+                  <span className="text-[11px] text-[#4b5563]">{user.post_office || "मुख्य डाकघर"}</span>
+                </div>
+                <span className="text-[10px] font-bold text-[#15803d] bg-white px-2 py-0.5 rounded border border-[#86efac]">
+                  उ.प्र. पोस्टल
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right 2 Columns: Saved Crops & Consultations */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-[#e5e7eb] shadow-xs flex items-center gap-3">
+              <div className="p-3 bg-[#dcfce7] text-[#15803d] rounded-xl">
+                <Sprout className="size-6" />
+              </div>
+              <div>
+                <span className="text-xs text-[#6b7280] font-semibold">पंजीकृत फसलें</span>
+                <p className="text-xl font-black text-[#14532d]">{myCrops.length} फसलें</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-[#e5e7eb] shadow-xs flex items-center gap-3">
+              <div className="p-3 bg-[#e0f2fe] text-[#0284c7] rounded-xl">
+                <HelpCircle className="size-6" />
+              </div>
+              <div>
+                <span className="text-xs text-[#6b7280] font-semibold">वैज्ञानिक परामर्श</span>
+                <p className="text-xl font-black text-[#0369a1]">{myConsultations.length} सक्रिय</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-[#e5e7eb] shadow-xs flex items-center gap-3">
+              <div className="p-3 bg-[#fef3c7] text-[#92400e] rounded-xl">
+                <TrendingUp className="size-6" />
+              </div>
+              <div>
+                <span className="text-xs text-[#6b7280] font-semibold">आज का मंडी भाव</span>
+                <p className="text-xl font-black text-[#92400e]">₹2,475/कुंतल</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Registered Crops List */}
+          <div className="bg-white border border-[#e5e7eb] rounded-2xl p-6 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-base text-[#14532d] flex items-center gap-2">
+                <Sprout className="size-5 text-[#15803d]" />
+                <span>{lang === "hi" ? "मेरी पंजीकृत फसलें (Active Crops)" : "My Crops"}</span>
+              </h3>
+              <Link href="/crops">
+                <Button variant="outline" size="sm">
+                  <PlusCircle className="size-3.5" />
+                  <span>{lang === "hi" ? "नई फसल जोड़ें" : "Add Crop"}</span>
+                </Button>
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {myCrops.map((crop, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 bg-[#f8faf5] border border-[#e5e7eb] rounded-xl flex flex-wrap items-center justify-between gap-4"
+                >
+                  <div>
+                    <h4 className="font-extrabold text-[#14532d] text-sm">{crop.name}</h4>
+                    <p className="text-xs text-[#6b7280] mt-0.5">
+                      क्षेत्रफल: {crop.area} • बुवाई तिथि: {crop.sowingDate}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold bg-[#dcfce7] text-[#14532d] px-2.5 py-1 rounded-full border border-[#86efac]">
+                      {crop.stage}
+                    </span>
+                    <Link href="/crops" className="text-xs font-bold text-[#15803d] hover:underline">
+                      पैकेज देखें →
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* My Consultations */}
+          <div className="bg-white border border-[#e5e7eb] rounded-2xl p-6 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-base text-[#14532d] flex items-center gap-2">
+                <HelpCircle className="size-5 text-[#15803d]" />
+                <span>{lang === "hi" ? "मेरे विशेषज्ञ परामर्श प्रश्न" : "My Consultations"}</span>
+              </h3>
+              <Link href="/ask-expert">
+                <Button variant="primary" size="sm">
+                  <span>{lang === "hi" ? "नया प्रश्न पूछें" : "Ask Question"}</span>
+                </Button>
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {myConsultations.map((item) => (
+                <div key={item.id} className="p-4 bg-[#f8faf5] border border-[#e5e7eb] rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#15803d]">प्रश्न सं.: #{item.id}</span>
+                    <span className="text-[11px] font-semibold bg-[#dcfce7] text-[#14532d] px-2 py-0.5 rounded-full">
+                      {item.status}
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-[#1f2937]">{item.question}</p>
+                  <p className="text-[11px] text-[#6b7280]">
+                    उत्तरदाता: {item.expert} • {item.date}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
