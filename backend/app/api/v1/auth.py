@@ -63,6 +63,18 @@ def _hash_otp(code: str) -> str:
     return hashlib.sha256(code.encode("utf-8")).hexdigest()
 
 
+def _parse_dt(val: Any) -> datetime | None:
+    """Safely parse datetime from either datetime object or ISO string."""
+    if isinstance(val, datetime):
+        return val
+    if isinstance(val, str):
+        try:
+            return datetime.fromisoformat(val.replace("Z", "+00:00")).replace(tzinfo=None)
+        except Exception:
+            return None
+    return None
+
+
 async def get_current_user(authorization: str | None = Header(None)) -> dict[str, Any]:
     """Dependency to retrieve the authenticated user from the Bearer token."""
     if not authorization or not authorization.startswith("Bearer "):
@@ -107,13 +119,15 @@ async def send_email_otp_endpoint(payload: SendOtpIn) -> dict[str, Any]:
     # Cooldown enforcement (45 seconds)
     recent = await db.email_verifications.find_one({"email": clean_email})
     if recent and "created_at" in recent and not recent.get("verified", False):
-        delta = (now - recent["created_at"]).total_seconds()
-        if delta < 45:
-            remaining = int(45 - delta)
-            raise HTTPException(
-                status_code=429,
-                detail=f"कृपया {remaining} सेकंड प्रतीक्षा करें (Please wait {remaining}s before resending OTP)"
-            )
+        c_at = _parse_dt(recent["created_at"])
+        if c_at:
+            delta = (now - c_at).total_seconds()
+            if 0 <= delta < 45:
+                remaining = int(45 - delta)
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"कृपया {remaining} सेकंड प्रतीक्षा करें (Please wait {remaining}s before resending OTP)"
+                )
 
     # Generate 6-digit cryptographically secure OTP
     otp_code = f"{secrets.randbelow(900000) + 100000:06d}"
@@ -171,7 +185,8 @@ async def verify_email_otp_endpoint(payload: VerifyOtpIn) -> dict[str, Any]:
             detail="सत्यापन कोड नहीं मिला। कृपया 'Verify Email' पर क्लिक कर नया OTP मांगें। (OTP record not found)"
         )
 
-    if rec.get("expires_at") and rec["expires_at"] < now:
+    exp_at = _parse_dt(rec.get("expires_at"))
+    if exp_at and exp_at < now:
         await db.email_verifications.delete_many({"email": clean_email})
         raise HTTPException(
             status_code=400,
@@ -262,8 +277,11 @@ async def register_farmer(payload: RegisterIn) -> dict[str, Any]:
     ver_record = await db.email_verifications.find_one({
         "email": clean_email,
         "verified": True,
-        "token_expires_at": {"$gt": now}
     })
+    if ver_record:
+        tok_exp = _parse_dt(ver_record.get("token_expires_at"))
+        if tok_exp and tok_exp < now:
+            ver_record = None
     
     # If token was supplied, verify it matches
     if not ver_record:
@@ -378,11 +396,12 @@ async def resend_otp(payload: ResendOtpIn) -> dict[str, Any]:
 
     recent = await db.otp_codes.find_one({"email": clean_email})
     if recent and "created_at" in recent:
-        # Check cooldown
-        delta = (datetime.utcnow() - recent["created_at"]).total_seconds()
-        if delta < 60:
-            remaining = int(60 - delta)
-            raise HTTPException(status_code=429, detail=f"कृपया {remaining} सेकंड प्रतीक्षा करें")
+        c_at = _parse_dt(recent["created_at"])
+        if c_at:
+            delta = (datetime.utcnow() - c_at).total_seconds()
+            if 0 <= delta < 60:
+                remaining = int(60 - delta)
+                raise HTTPException(status_code=429, detail=f"कृपया {remaining} सेकंड प्रतीक्षा करें")
 
     otp_code = str(secrets.randbelow(900000) + 100000)
     now = datetime.utcnow()
