@@ -12,12 +12,13 @@ class Settings(BaseSettings):
     
     # SMTP / Email Configuration
     smtp_host: str = "smtp.gmail.com"
-    smtp_port: int = 587
-    smtp_username: str = "akhil78026@gmail.com"
-    smtp_password: str = "wgyycpliximdcjti"
-    email_api_key: str = "wgyycpliximdcjti"
-    email_from: str = "akhil78026@gmail.com"
-    contact_email: str = "akhil78026@gmail.com"
+    smtp_port: int = 465
+    smtp_username: str = "upkisansewa@gmail.com"
+    smtp_password: str = "nmysoppfjogdukgt"
+    email_api_key: str = "nmysoppfjogdukgt"
+    email_from: str = "Awadh Kisan Seva <upkisansewa@gmail.com>"
+    contact_email: str = "upkisansewa@gmail.com"
+    app_name: str = "Awadh Kisan Seva"
     
     # Admin Credentials
     admin_email: str = "akhil78026@gmail.com"

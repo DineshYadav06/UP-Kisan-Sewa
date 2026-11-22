@@ -1,12 +1,101 @@
-from datetime import datetime
+from datetime import datetime, timezone
+import random
 from typing import Any
-
-from fastapi import APIRouter, Query
+from pydantic import BaseModel
+from fastapi import APIRouter, Query, HTTPException
 
 from app.core.data_sources import DATA_SOURCES
 from app.db.mongo import get_db
 
 router = APIRouter(tags=["public"])
+
+
+class QuestionCreateIn(BaseModel):
+    category: str
+    crop: str
+    district: str
+    question: str
+    farmer_name: str | None = "किसान मित्र"
+    farmer_email: str | None = None
+    farmer_phone: str | None = None
+
+
+class QuestionAnswerIn(BaseModel):
+    answer: str
+    answered_by: str | None = "डॉ. नीरज कुमार सिंह, सह-प्राध्यापक (MCAET, NDUAT)"
+
+
+@router.post("/questions")
+async def create_question(payload: QuestionCreateIn) -> dict[str, Any]:
+    """Submit a question to NDUAT agriculture experts."""
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    q_id = f"UKS-2026-{random.randint(1000, 9999)}"
+    
+    doc = {
+        "id": q_id,
+        "category": payload.category,
+        "crop": payload.crop,
+        "district": payload.district,
+        "question": payload.question,
+        "farmer_name": payload.farmer_name or "किसान मित्र",
+        "farmer_email": payload.farmer_email,
+        "farmer_phone": payload.farmer_phone,
+        "status": "pending",
+        "answer": None,
+        "answered_by": None,
+        "answered_at": None,
+        "created_at": now,
+    }
+    await db.expert_questions.insert_one(doc)
+    return {
+        "status": "success",
+        "message": "आपका प्रश्न NDUAT वैज्ञानिकों को सफलतापूर्वक प्रेषित कर दिया गया है।",
+        "reference_id": q_id,
+        "data": doc,
+    }
+
+
+@router.get("/questions")
+async def list_questions(
+    status: str | None = None,
+    district: str | None = None,
+    email: str | None = None,
+    limit: int = Query(50, ge=1, le=100),
+) -> list[dict]:
+    """Retrieve expert consultation questions with optional filters."""
+    db = get_db()
+    filt: dict[str, Any] = {}
+    if status:
+        filt["status"] = status
+    if district:
+        filt["district"] = {"$regex": district, "$options": "i"}
+    if email:
+        filt["farmer_email"] = email.lower().strip()
+    
+    cursor = db.expert_questions.find(filt, {"_id": 0}).sort("created_at", -1).limit(limit)
+    return await cursor.to_list(limit)
+
+
+@router.post("/questions/{question_id}/answer")
+async def answer_question(question_id: str, payload: QuestionAnswerIn) -> dict[str, Any]:
+    """Submit an official answer to a farmer's question."""
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    res = await db.expert_questions.update_one(
+        {"id": question_id},
+        {"$set": {
+            "answer": payload.answer,
+            "answered_by": payload.answered_by or "NDUAT कृषि वैज्ञानिक",
+            "answered_at": now,
+            "status": "answered",
+        }}
+    )
+    return {
+        "status": "success",
+        "message": f"प्रश्न {question_id} का वैज्ञानिक उत्तर सफलतापूर्वक दर्ज कर दिया गया है।"
+    }
 
 
 def _public_filter() -> dict[str, Any]:
